@@ -1,806 +1,170 @@
-<!DOCTYPE html>
-<html lang="en" class="h-full bg-slate-950 text-slate-100" data-theme="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AISVIP • Smart City Urban Reporting & GIS Platform</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts: Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-    <script>
-        tailwind.config = {
-            darkMode: ['class', '[data-theme="dark"]'],
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                    colors: {
-                        brand: {
-                            50: '#eff6ff',
-                            100: '#dbeafe',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            700: '#1d4ed8',
-                            900: '#1e3a8a',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        .gis-grid {
-            background-size: 35px 35px;
-            background-image: 
-                linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-        }
-        .light .gis-grid {
-            background-image: 
-                linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
-        }
-        /* Custom scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.4); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 0.7); }
-        
-        .pulse-ring {
-            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
-        }
-        @keyframes pulse-ring {
-            0% { transform: scale(0.95); opacity: 0.8; }
-            50% { transform: scale(1.6); opacity: 0; }
-            100% { transform: scale(0.95); opacity: 0; }
-        }
-    </style>
-</head>
-<body class="h-full flex flex-col font-sans overflow-hidden antialiased bg-slate-950 text-slate-100 transition-colors duration-300" id="body-root">
-
-    <!-- TOP PRESENTATION CONTROLS BAR (NEW FOR JUDGES / DEMO) -->
-    <div class="bg-slate-900 border-b border-slate-800 px-4 py-2 flex items-center justify-between z-30 shrink-0 text-xs shadow-md">
-        <div class="flex items-center gap-3">
-            <span class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-brand-600 text-white font-semibold shadow-sm">
-                <i class="fa-solid fa-clapperboard"></i> Presentation Mode
-            </span>
-            <span class="text-slate-400 hidden sm:inline">Storyboard Walkthrough (5-Min Video Aid):</span>
-        </div>
-        
-        <!-- STEP CONTROLS -->
-        <div class="flex items-center gap-1.5 overflow-x-auto py-1">
-            <button onclick="startStoryboardTour()" id="tour-btn" class="px-3 py-1 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30 transition-all font-medium flex items-center gap-1">
-                <i class="fa-solid fa-play"></i> <span id="tour-btn-text">Auto-Guide Tour</span>
-            </button>
-            <div class="h-4 w-[1px] bg-slate-700 mx-1 hidden sm:block"></div>
-            <button onclick="switchTab('resident'); updateTourHighlight(1);" class="tour-step-btn px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all" data-step="1">1. Report</button>
-            <button onclick="switchTab('ai'); updateTourHighlight(2);" class="tour-step-btn px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all" data-step="2">2. AI Engine</button>
-            <button onclick="switchTab('reviewer'); updateTourHighlight(3);" class="tour-step-btn px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all" data-step="3">3. Verify</button>
-            <button onclick="switchTab('gis'); updateTourHighlight(4);" class="tour-step-btn px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all" data-step="4">4. GIS & Response</button>
-        </div>
-
-        <!-- RIGHT UTILS: THEME TOGGLE -->
-        <div class="flex items-center gap-2">
-            <button onclick="toggleTheme()" class="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white transition-colors" title="Toggle Light/Dark">
-                <i class="fa-solid fa-moon" id="theme-icon"></i>
-            </button>
-        </div>
-    </div>
-
-    <!-- MAIN HEADER -->
-    <header class="h-16 bg-slate-900/90 backdrop-blur border-b border-slate-800 px-4 lg:px-6 flex items-center justify-between z-20 shrink-0">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-brand-500/20">
-                <i class="fa-solid fa-city"></i>
-            </div>
-            <div>
-                <div class="flex items-center gap-2">
-                    <h1 class="font-bold text-white tracking-wide text-base lg:text-lg">AISVIP</h1>
-                    <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 hidden sm:inline-block">Maiduguri, Borno State</span>
-                </div>
-                <p class="text-xs text-slate-400 hidden sm:block">Aid Initiative to Support Vulnerable and Idle People • Smart City GIS</p>
-            </div>
-        </div>
-
-        <div class="flex items-center gap-3">
-            <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>Production Prototype v2.4</span>
-            </div>
-        </div>
-    </header>
-
-    <!-- APP CONTAINER -->
-    <div class="flex flex-1 overflow-hidden">
-
-        <!-- SIDEBAR NAVIGATION -->
-        <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between shrink-0 hidden md:flex">
-            <div class="p-4 space-y-1">
-                <div class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-3 mb-2">Platform Modules</div>
-                
-                <button onclick="switchTab('resident')" id="nav-resident" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all bg-brand-600 text-white shadow-md shadow-brand-600/20">
-                    <i class="fa-solid fa-mobile-screen w-5 text-center"></i>
-                    <span>1. Resident Portal</span>
-                </button>
-
-                <button onclick="switchTab('ai')" id="nav-ai" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all">
-                    <i class="fa-solid fa-microchip w-5 text-center"></i>
-                    <span>2. AI Processing Engine</span>
-                    <span id="ai-badge" class="ml-auto text-[10px] bg-brand-500/20 text-brand-400 px-2 py-0.5 rounded-full border border-brand-500/30">New</span>
-                </button>
-
-                <button onclick="switchTab('reviewer')" id="nav-reviewer" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all">
-                    <i class="fa-solid fa-user-check w-5 text-center"></i>
-                    <span>3. Human Verification</span>
-                </button>
-
-                <button onclick="switchTab('gis')" id="nav-gis" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all">
-                    <i class="fa-solid fa-map-location-dot w-5 text-center"></i>
-                    <span>4. GIS & Response</span>
-                </button>
-            </div>
-
-            <!-- NARRATION HELPER BOX -->
-            <div class="p-4 m-3 rounded-xl bg-slate-950/80 border border-slate-800 text-xs text-slate-400 space-y-2">
-                <div class="flex items-center justify-between text-slate-200 font-semibold">
-                    <span><i class="fa-solid fa-circle-info text-brand-500 mr-1"></i> Storyboard Cue</span>
-                </div>
-                <p id="narration-cue" class="leading-relaxed text-[11px]">Click 'Auto-Guide Tour' above to let the prototype automatically narrate through the video script milestones.</p>
-            </div>
-        </aside>
-
-        <!-- MAIN CONTENT AREA -->
-        <main class="flex-1 overflow-y-auto bg-slate-950 p-4 md:p-8">
-
-            <!-- ================= VIEW 1: RESIDENT REPORTING ================= -->
-            <section id="view-resident" class="max-w-4xl mx-auto space-y-6">
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">Step 1</span>
-                            <span class="text-xs text-slate-500">• Resident Mobile/Web Interface</span>
-                        </div>
-                        <h2 class="text-xl font-bold text-white mt-1">Submit Urban Incident Report</h2>
-                        <p class="text-xs text-slate-400">Citizens report infrastructure issues across Maiduguri wards for fast verification.</p>
-                    </div>
-                </div>
-
-                <form id="incident-form" onsubmit="handleResidentSubmit(event)" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-xs font-medium text-slate-300 mb-2">Incident Category <span class="text-rose-500">*</span></label>
-                            <div class="grid grid-cols-2 gap-2" id="category-chips">
-                                <button type="button" onclick="selectCategory('Blocked Drainage')" class="cat-chip active p-3 rounded-xl border text-left text-xs transition-all flex items-center gap-2.5 bg-brand-600/20 border-brand-500 text-white font-medium">
-                                    <i class="fa-solid fa-water-lower text-brand-400 text-base"></i>
-                                    <span>Blocked Drainage</span>
-                                </button>
-                                <button type="button" onclick="selectCategory('Pothole / Road')" class="cat-chip p-3 rounded-xl border border-slate-800 bg-slate-900 text-slate-400 hover:border-slate-700 text-left text-xs transition-all flex items-center gap-2.5">
-                                    <i class="fa-solid fa-road-barrier text-slate-400 text-base"></i>
-                                    <span>Pothole / Road</span>
-                                </button>
-                                <button type="button" onclick="selectCategory('Streetlight Fault')" class="cat-chip p-3 rounded-xl border border-slate-800 bg-slate-900 text-slate-400 hover:border-slate-700 text-left text-xs transition-all flex items-center gap-2.5">
-                                    <i class="fa-solid fa-lightbulb text-slate-400 text-base"></i>
-                                    <span>Streetlight Fault</span>
-                                </button>
-                                <button type="button" onclick="selectCategory('Waste Overflow')" class="cat-chip p-3 rounded-xl border border-slate-800 bg-slate-900 text-slate-400 hover:border-slate-700 text-left text-xs transition-all flex items-center gap-2.5">
-                                    <i class="fa-solid fa-trash-can text-slate-400 text-base"></i>
-                                    <span>Waste Overflow</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label for="description" class="block text-xs font-medium text-slate-300 mb-2">Description <span class="text-rose-500">*</span></label>
-                            <textarea id="description" rows="4" required class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 resize-none" placeholder="Describe the issue (e.g., Major drainage overflow near Monday Market blocking market entrance...)">Severe drainage blockage near Monday Market causing flood risk during rains. Water is spilling into stalls.</textarea>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-medium text-slate-300 mb-2">Location / Ward Landmark <span class="text-rose-500">*</span></label>
-                            <select id="location-select" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
-                                <option value="Monday Market Axis, Maiduguri">Monday Market Axis (11.838, 13.153)</option>
-                                <option value="Bulumkutu Roundabout, Maiduguri">Bulumkutu Roundabout (11.821, 13.112)</option>
-                                <option value="Post Office Area, Maiduguri">Post Office Area (11.845, 13.160)</option>
-                                <option value="Custom Bus Stop, Maiduguri">Custom Bus Stop (11.858, 13.189)</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="space-y-4 flex flex-col justify-between">
-                        <div>
-                            <label class="block text-xs font-medium text-slate-300 mb-2">Photo Evidence Simulation</label>
-                            <div class="border-2 border-dashed border-slate-800 bg-slate-900/50 rounded-xl p-4 text-center cursor-pointer">
-                                <i class="fa-solid fa-image text-2xl text-emerald-400 mb-1"></i>
-                                <p class="text-xs text-slate-200 font-medium">drainage_evidence_04.jpg attached</p>
-                                <span class="text-[10px] text-emerald-400 font-mono">Verified GPS Metadata Included</span>
-                            </div>
-                        </div>
-
-                        <div class="p-3 bg-slate-900 border border-slate-800 rounded-xl space-y-2">
-                            <div class="flex items-center justify-between text-xs">
-                                <span class="text-slate-400"><i class="fa-solid fa-map-pin text-rose-500 mr-1"></i> GPS Coordinates Locked</span>
-                                <span class="text-emerald-400 font-mono text-[10px]">High Accuracy</span>
-                            </div>
-                            <div class="h-24 bg-slate-950 rounded-lg border border-slate-800 flex items-center justify-center relative overflow-hidden gis-grid">
-                                <div class="absolute inset-0 flex items-center justify-center">
-                                    <div class="w-8 h-8 rounded-full bg-rose-500/20 pulse-ring absolute"></div>
-                                    <i class="fa-solid fa-location-dot text-rose-500 text-xl z-10"></i>
-                                </div>
-                                <span class="absolute bottom-2 left-2 text-[10px] font-mono bg-slate-900/80 px-2 py-0.5 rounded text-slate-400">Lat: 11.838 | Long: 13.153</span>
-                            </div>
-                        </div>
-
-                        <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-semibold py-3 px-4 rounded-xl text-xs transition-all shadow-lg shadow-brand-600/20 flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-paper-plane"></i>
-                            <span>Submit Report & Process with AI</span>
-                        </button>
-                    </div>
-                </form>
-            </section>
-
-            <!-- ================= VIEW 2: AI PROCESSING ENGINE ================= -->
-            <section id="view-ai" class="max-w-4xl mx-auto space-y-6 hidden">
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-500/10 text-amber-400 border border-amber-500/30">Step 2</span>
-                            <span class="text-xs text-slate-500">• NLP & Entity Extraction</span>
-                        </div>
-                        <h2 class="text-xl font-bold text-white mt-1">AI-Assisted Processing Engine</h2>
-                        <p class="text-xs text-slate-400">Transforms free-text citizen reports into structured records with provisional priority scoring.</p>
-                    </div>
-                    <!-- TOGGLE VIEW MODE: STRUCTURED vs RAW JSON -->
-                    <div class="flex bg-slate-900 border border-slate-800 p-1 rounded-lg">
-                        <button onclick="setAITabMode('structured')" id="ai-mode-structured" class="px-3 py-1 rounded text-xs font-medium bg-brand-600 text-white transition-all">Structured View</button>
-                        <button onclick="setAITabMode('json')" id="ai-mode-json" class="px-3 py-1 rounded text-xs font-medium text-slate-400 hover:text-white transition-all">Raw JSON Payload</button>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- RAW INPUT -->
-                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
-                        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                            <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider"><i class="fa-solid fa-file-lines text-brand-400 mr-2"></i> Raw Resident Input</h3>
-                            <span id="ai-raw-id" class="text-[10px] font-mono text-slate-500">ID: #REP-8842</span>
-                        </div>
-                        <div class="space-y-2">
-                            <div class="text-[11px] text-slate-400">Category: <span id="ai-raw-cat" class="text-slate-200 font-semibold">Blocked Drainage</span></div>
-                            <div class="text-[11px] text-slate-400">Location: <span id="ai-raw-loc" class="text-slate-200 font-semibold">Monday Market Axis, Maiduguri</span></div>
-                            <div class="p-3 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-300 italic font-mono leading-relaxed" id="ai-raw-desc">
-                                "Severe drainage blockage near Monday Market causing flood risk during rains. Water is spilling into stalls."
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- AI PROCESSED VIEW (STRUCTURED OR JSON) -->
-                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4 relative overflow-hidden">
-                        
-                        <!-- STRUCTURED CONTAINER -->
-                        <div id="ai-view-structured" class="space-y-4">
-                            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                                <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-                                    <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i> AI Extraction Output
-                                </h3>
-                                <span class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-mono">Confidence: 94.2%</span>
-                            </div>
-
-                            <div class="space-y-3">
-                                <div>
-                                    <span class="text-[10px] text-slate-500 uppercase font-semibold">Provisional Priority Score</span>
-                                    <div class="mt-1 flex items-center gap-2">
-                                        <span class="px-2.5 py-1 rounded text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center gap-1.5">
-                                            <i class="fa-solid fa-bolt"></i> High Priority (Flood Hazard Risk)
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <span class="text-[10px] text-slate-500 uppercase font-semibold">Extracted Entities & Tags</span>
-                                    <div class="flex flex-wrap gap-1.5 mt-1">
-                                        <span class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">#DrainageBlockage</span>
-                                        <span class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">#CommercialDistrict</span>
-                                        <span class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">#BornoStateWorks</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- RAW JSON CONTAINER (HIDDEN BY DEFAULT) -->
-                        <div id="ai-view-json" class="space-y-4 hidden">
-                            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                                <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider font-mono">Payload JSON Object</h3>
-                                <span class="text-[10px] text-slate-500">UTF-8 Encoded</span>
-                            </div>
-                            <pre class="p-3 bg-slate-950 border border-slate-800 rounded-lg text-[10px] text-emerald-400 font-mono overflow-x-auto h-40">
-{
-  "incident_id": "REP-8842",
-  "timestamp": "2026-11-05T09:59:00Z",
-  "ai_classification": {
-    "category": "Blocked Drainage",
-    "confidence": 0.942,
-    "urgency_score": 0.89
-  },
-  "extracted_entities": {
-    "landmark": "Monday Market",
-    "hazard_type": "Overflow / Flood",
-    "recommended_dept": "Environmental Protection"
-  },
-  "human_review_status": "Pending Verification"
-}</pre>
-                        </div>
-
-                        <button onclick="switchTab('reviewer')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-medium py-2.5 px-4 rounded-xl text-xs transition-all flex items-center justify-center gap-2 mt-4">
-                            <span>Proceed to Human Reviewer Verification</span>
-                            <i class="fa-solid fa-arrow-right text-slate-400"></i>
-                        </button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ================= VIEW 3: HUMAN VERIFICATION ================= -->
-            <section id="view-reviewer" class="max-w-4xl mx-auto space-y-6 hidden">
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-purple-500/10 text-purple-400 border border-purple-500/30">Step 3</span>
-                            <span class="text-xs text-slate-500">• Accountability & Validation</span>
-                        </div>
-                        <h2 class="text-xl font-bold text-white mt-1">Human Verification Dashboard</h2>
-                        <p class="text-xs text-slate-400">Reviewers check AI recommendations, evidence photos, and authorize spatial mapping.</p>
-                    </div>
-                </div>
-
-                <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-6">
-                    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
-                        <div>
-                            <span class="text-xs text-slate-400">Active Audit Queue:</span>
-                            <h3 class="text-base font-bold text-white" id="rev-title">Blocked Drainage - Monday Market Axis</h3>
-                        </div>
-                        <span class="text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30 px-3 py-1 rounded-full font-medium">Status: Pending Verification</span>
-                    </div>
-
-                    <div class="space-y-3">
-                        <label class="flex items-start gap-3 p-3 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer hover:border-slate-700 transition-all">
-                            <input type="checkbox" checked class="mt-1 accent-brand-500 rounded">
-                            <div>
-                                <span class="text-xs font-semibold text-slate-200">Category & Taxonomy Check</span>
-                                <p class="text-[11px] text-slate-400">Verified classification aligns with Borno State public infrastructure standards.</p>
-                            </div>
-                        </label>
-
-                        <label class="flex items-start gap-3 p-3 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer hover:border-slate-700 transition-all">
-                            <input type="checkbox" checked class="mt-1 accent-brand-500 rounded">
-                            <div>
-                                <span class="text-xs font-semibold text-slate-200">Geolocation & Evidence Validation</span>
-                                <p class="text-[11px] text-slate-400">GPS coordinates and photo evidence match physical ward records.</p>
-                            </div>
-                        </label>
-                    </div>
-
-                    <!-- AUDIT LOG TRAIL -->
-                    <div class="p-3 bg-slate-950/60 border border-slate-800 rounded-xl space-y-2">
-                        <div class="text-[11px] font-semibold text-slate-300">Audit Trail Log</div>
-                        <div class="text-[10px] text-slate-400 font-mono space-y-1">
-                            <div>[09:59:01] System: Report ingested from Resident Web Portal</div>
-                            <div>[09:59:02] AI Engine: Parsed successfully with 94.2% confidence</div>
-                            <div>[09:59:03] Reviewer Queue: Assigned to Inspector Aminu (Borno Urban Unit)</div>
-                        </div>
-                    </div>
-
-                    <!-- ACTION BUTTONS -->
-                    <div class="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-slate-800">
-                        <button onclick="handleReviewAction('reject')" class="px-4 py-2.5 rounded-xl border border-rose-500/30 text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 text-xs font-semibold transition-all">
-                            <i class="fa-solid fa-xmark mr-1.5"></i> Reject Report
-                        </button>
-                        <button onclick="handleReviewAction('request_changes')" class="px-4 py-2.5 rounded-xl border border-amber-500/30 text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 text-xs font-semibold transition-all">
-                            <i class="fa-solid fa-rotate-left mr-1.5"></i> Request Clarification
-                        </button>
-                        <button onclick="handleReviewAction('approve')" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg shadow-emerald-600/20 transition-all flex items-center gap-2">
-                            <i class="fa-solid fa-check"></i>
-                            <span>Approve & Push to GIS Map</span>
-                        </button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ================= VIEW 4: GIS DASHBOARD & LIFECYCLE ================= -->
-            <section id="view-gis" class="space-y-6 hidden">
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-brand-500/10 text-brand-400 border border-brand-500/30">Step 4</span>
-                            <span class="text-xs text-slate-500">• Spatial Intelligence & Response Tracking</span>
-                        </div>
-                        <h2 class="text-xl font-bold text-white mt-1">GIS Dashboard & Response Lifecycle</h2>
-                        <p class="text-xs text-slate-400">Track verified incidents across Maiduguri wards and monitor institutional resolution progress.</p>
-                    </div>
-                </div>
-
-                <!-- METRICS ROW -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
-                        <span class="text-[10px] text-slate-400 uppercase font-semibold">Total Verified Reports</span>
-                        <div class="text-xl font-bold text-white mt-1" id="stat-total">149</div>
-                        <span class="text-[10px] text-emerald-400"><i class="fa-solid fa-arrow-up mr-1"></i> +14% this month</span>
-                    </div>
-
-                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
-                        <span class="text-[10px] text-slate-400 uppercase font-semibold">Assigned / In Progress</span>
-                        <div class="text-xl font-bold text-amber-400 mt-1">28</div>
-                        <span class="text-[10px] text-amber-400">Active Workcrews</span>
-                    </div>
-
-                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
-                        <span class="text-[10px] text-slate-400 uppercase font-semibold">Resolved Cases</span>
-                        <div class="text-xl font-bold text-emerald-400 mt-1">115</div>
-                        <span class="text-[10px] text-slate-500">Successfully closed</span>
-                    </div>
-
-                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
-                        <span class="text-[10px] text-slate-400 uppercase font-semibold">Average Response Time</span>
-                        <div class="text-xl font-bold text-brand-400 mt-1">2.8 Days</div>
-                        <span class="text-[10px] text-slate-500">SLA Benchmark: < 5 Days</span>
-                    </div>
-                </div>
-
-                <!-- MAP & LIFECYCLE TRACKER GRID -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    
-                    <!-- 2D STYLIZED VECTOR MAP -->
-                    <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col h-[500px]">
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="flex items-center gap-2">
-                                <span class="text-xs font-bold text-slate-200"><i class="fa-solid fa-map text-brand-500 mr-1.5"></i> Maiduguri Ward Vector Map</span>
-                                <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700">Live Pins</span>
-                            </div>
-                            <div class="flex items-center gap-1.5">
-                                <span class="text-[10px] text-slate-400">Filter:</span>
-                                <select onchange="filterMapPins(this.value)" class="bg-slate-800 border border-slate-700 text-xs text-slate-200 rounded px-2 py-1">
-                                    <option value="ALL">All Categories</option>
-                                    <option value="Blocked Drainage">Blocked Drainage</option>
-                                    <option value="Pothole / Road">Pothole / Road</option>
-                                    <option value="Streetlight Fault">Streetlight Fault</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="flex-1 bg-slate-950 rounded-xl border border-slate-800 relative overflow-hidden gis-grid p-4 flex items-center justify-center">
-                            <div class="absolute top-4 left-4 text-[10px] font-mono text-slate-500 bg-slate-900/90 p-2 rounded border border-slate-800">
-                                <div>ZONE: Maiduguri Municipal</div>
-                                <div>LAT/LNG: 11.83° N, 13.15° E</div>
-                            </div>
-
-                            <div id="map-pins-container" class="relative w-full h-full">
-                                <!-- Dynamic pins -->
-                            </div>
-
-                            <div class="absolute bottom-4 right-4 bg-slate-900/90 border border-slate-800 p-2.5 rounded-lg text-[10px] space-y-1.5 backdrop-blur-sm">
-                                <div class="font-bold text-slate-300 mb-1">Status Legend</div>
-                                <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span><span class="text-slate-400">Pending</span></div>
-                                <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span><span class="text-slate-400">In Progress</span></div>
-                                <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span><span class="text-slate-400">Resolved</span></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- RESPONSE LIFECYCLE TRACKER & FEED -->
-                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col h-[500px]">
-                        <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
-                            <h3 class="text-xs font-bold text-slate-200">Response Lifecycle Tracker</h3>
-                            <span class="text-[10px] text-brand-400 font-mono">Pending → Assigned → In Progress → Resolved</span>
-                        </div>
-
-                        <div class="flex-1 overflow-y-auto space-y-3 pr-1" id="lifecycle-feed-list">
-                            <!-- Dynamic incident items -->
-                        </div>
-                    </div>
-
-                </div>
-            </section>
-
-        </main>
-    </div>
-
-    <!-- SCRIPT & APPLICATION LOGIC -->
-    <script>
-        const state = {
-            activeCategory: 'Blocked Drainage',
-            currentReport: {
-                id: 'REP-8842',
-                category: 'Blocked Drainage',
-                description: 'Severe drainage blockage near Monday Market causing flood risk during rains. Water is spilling into stalls.',
-                location: 'Monday Market Axis, Maiduguri',
-                coordinates: { top: '38%', left: '45%' },
-                priority: 'High',
-                status: 'Pending',
-                timestamp: 'Just Now'
-            },
-            verifiedIncidents: [
-                { id: 'REP-8842', category: 'Blocked Drainage', location: 'Monday Market Axis', description: 'Severe drainage blockage causing flood risk.', priority: 'High', status: 'Pending', coordinates: { top: '38%', left: '45%' } },
-                { id: 'REP-7019', category: 'Pothole / Road', location: 'Bulumkutu Roundabout', description: 'Large pothole obstructing heavy traffic flow.', priority: 'Medium', status: 'In Progress', coordinates: { top: '60%', left: '25%' } },
-                { id: 'REP-5541', category: 'Streetlight Fault', location: 'Post Office Area', description: 'Solar streetlights faulty along main corridor.', priority: 'Low', status: 'Resolved', coordinates: { top: '25%', left: '65%' } },
-                { id: 'REP-3022', category: 'Waste Overflow', location: 'Custom Bus Stop', description: 'Uncollected refuse accumulating near market.', priority: 'Medium', status: 'Assigned', coordinates: { top: '72%', left: '70%' } }
-            ]
-        };
-
-        let tourInterval = null;
-        let currentTourStep = 1;
-
-        // TAB SWITCHER
-        function switchTab(tabId) {
-            const tabs = ['resident', 'ai', 'reviewer', 'gis'];
-            tabs.forEach(t => {
-                const view = document.getElementById(`view-${t}`);
-                const nav = document.getElementById(`nav-${t}`);
-                if(t === tabId) {
-                    view.classList.remove('hidden');
-                    if(nav) {
-                        nav.classList.add('bg-brand-600', 'text-white', 'shadow-md');
-                        nav.classList.remove('text-slate-400', 'hover:bg-slate-800/60');
-                    }
-                } else {
-                    view.classList.add('hidden');
-                    if(nav) {
-                        nav.classList.remove('bg-brand-600', 'text-white', 'shadow-md');
-                        nav.classList.add('text-slate-400', 'hover:bg-slate-800/60');
-                    }
-                }
-            });
-
-            if(tabId === 'gis') {
-                renderGISMap('ALL');
-            }
-        }
-
-        // TOUR HIGHLIGHT UPDATER
-        function updateTourHighlight(step) {
-            currentTourStep = step;
-            document.querySelectorAll('.tour-step-btn').forEach(btn => {
-                if(parseInt(btn.getAttribute('data-step')) === step) {
-                    btn.classList.add('bg-brand-600', 'text-white');
-                    btn.classList.remove('bg-slate-800', 'text-slate-300');
-                } else {
-                    btn.classList.remove('bg-brand-600', 'text-white');
-                    btn.classList.add('bg-slate-800', 'text-slate-300');
-                }
-            });
-
-            const cues = {
-                1: "Step 1: Show resident reporting interface. Select category, description, and location.",
-                2: "Step 2: Demonstrate AI automated text extraction and provisional priority scoring.",
-                3: "Step 3: Explain human review & validation checks before GIS spatial mapping.",
-                4: "Step 4: Explore verified reports on the Maiduguri GIS map and track lifecycle statuses."
-            };
-            document.getElementById('narration-cue').innerText = cues[step] || "";
-        }
-
-        // AUTO-GUIDE TOUR (DEMO MODE)
-        function startStoryboardTour() {
-            const btnText = document.getElementById('tour-btn-text');
-            if(tourInterval) {
-                clearInterval(tourInterval);
-                tourInterval = null;
-                btnText.innerText = "Auto-Guide Tour";
-                document.getElementById('tour-btn').classList.remove('bg-amber-500/40');
-                return;
-            }
-
-            btnText.innerText = "Pause Tour";
-            document.getElementById('tour-btn').classList.add('bg-amber-500/40');
-            
-            const steps = ['resident', 'ai', 'reviewer', 'gis'];
-            let idx = 0;
-            
-            switchTab(steps[idx]);
-            updateTourHighlight(idx + 1);
-
-            tourInterval = setInterval(() => {
-                idx++;
-                if(idx >= steps.length) {
-                    clearInterval(tourInterval);
-                    tourInterval = null;
-                    btnText.innerText = "Auto-Guide Tour";
-                    document.getElementById('tour-btn').classList.remove('bg-amber-500/40');
-                    return;
-                }
-                switchTab(steps[idx]);
-                updateTourHighlight(idx + 1);
-            }, 7000); // 7 seconds per step for video presentation
-        }
-
-        // CATEGORY SELECTION
-        function selectCategory(cat) {
-            state.activeCategory = cat;
-            document.querySelectorAll('.cat-chip').forEach(btn => {
-                if(btn.innerText.includes(cat)) {
-                    btn.className = "cat-chip active p-3 rounded-xl border text-left text-xs transition-all flex items-center gap-2.5 bg-brand-600/20 border-brand-500 text-white font-medium";
-                } else {
-                    btn.className = "cat-chip p-3 rounded-xl border border-slate-800 bg-slate-900 text-slate-400 hover:border-slate-700 text-left text-xs transition-all flex items-center gap-2.5";
-                }
-            });
-        }
-
-        // RESIDENT SUBMIT
-        function handleResidentSubmit(e) {
-            e.preventDefault();
-            const desc = document.getElementById('description').value;
-            const loc = document.getElementById('location-select').value;
-            const randomId = 'REP-' + Math.floor(1000 + Math.random() * 9000);
-
-            state.currentReport = {
-                id: randomId,
-                category: state.activeCategory,
-                description: desc,
-                location: loc,
-                coordinates: { top: '40%', left: '50%' },
-                priority: state.activeCategory === 'Blocked Drainage' ? 'High' : 'Medium',
-                status: 'Pending',
-                timestamp: 'Just Now'
-            };
-
-            document.getElementById('ai-raw-id').innerText = `ID: #${randomId}`;
-            document.getElementById('ai-raw-cat').innerText = state.activeCategory;
-            document.getElementById('ai-raw-loc').innerText = loc;
-            document.getElementById('ai-raw-desc').innerText = `"${desc}"`;
-            document.getElementById('rev-title').innerText = `${state.activeCategory} - ${loc}`;
-
-            switchTab('ai');
-            updateTourHighlight(2);
-        }
-
-        // AI VIEW MODE TOGGLE (STRUCTURED VS JSON)
-        function setAITabMode(mode) {
-            const structDiv = document.getElementById('ai-view-structured');
-            const jsonDiv = document.getElementById('ai-view-json');
-            const structBtn = document.getElementById('ai-mode-structured');
-            const jsonBtn = document.getElementById('ai-mode-json');
-
-            if(mode === 'structured') {
-                structDiv.classList.remove('hidden');
-                jsonDiv.classList.add('hidden');
-                structBtn.className = "px-3 py-1 rounded text-xs font-medium bg-brand-600 text-white transition-all";
-                jsonBtn.className = "px-3 py-1 rounded text-xs font-medium text-slate-400 hover:text-white transition-all";
-            } else {
-                structDiv.classList.add('hidden');
-                jsonDiv.classList.remove('hidden');
-                jsonBtn.className = "px-3 py-1 rounded text-xs font-medium bg-brand-600 text-white transition-all";
-                structBtn.className = "px-3 py-1 rounded text-xs font-medium text-slate-400 hover:text-white transition-all";
-            }
-        }
-
-        // REVIEW ACTIONS
-        function handleReviewAction(action) {
-            if(action === 'approve') {
-                const exists = state.verifiedIncidents.find(i => i.id === state.currentReport.id);
-                if(!exists) state.verifiedIncidents.unshift(state.currentReport);
-                switchTab('gis');
-                updateTourHighlight(4);
-            } else if(action === 'request_changes') {
-                alert('Clarification requested from resident. Report returned to draft state.');
-                switchTab('resident');
-                updateTourHighlight(1);
-            } else {
-                alert('Report rejected by reviewer.');
-                switchTab('resident');
-                updateTourHighlight(1);
-            }
-        }
-
-        // RENDER GIS MAP & LIFECYCLE FEED
-        function renderGISMap(filterCat) {
-            const mapContainer = document.getElementById('map-pins-container');
-            const feedContainer = document.getElementById('lifecycle-feed-list');
-            
-            mapContainer.innerHTML = '';
-            feedContainer.innerHTML = '';
-
-            const filtered = filterCat === 'ALL' ? state.verifiedIncidents : state.verifiedIncidents.filter(i => i.category === filterCat);
-
-            filtered.forEach(item => {
-                let colorClass = 'bg-rose-500';
-                if(item.status === 'In Progress' || item.status === 'Assigned') colorClass = 'bg-amber-500';
-                if(item.status === 'Resolved') colorClass = 'bg-emerald-500';
-
-                // Map Pin
-                const pin = document.createElement('div');
-                pin.className = 'absolute cursor-pointer group transition-all transform hover:scale-125 z-10';
-                pin.style.top = item.coordinates.top;
-                pin.style.left = item.coordinates.left;
-                pin.innerHTML = `
-                    <div class="relative flex items-center justify-center">
-                        <div class="w-5 h-5 rounded-full ${colorClass}/20 pulse-ring absolute"></div>
-                        <div class="w-3.5 h-3.5 rounded-full ${colorClass} border-2 border-slate-950 shadow-lg"></div>
-                    </div>
-                    <div class="opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-800 text-slate-200 text-[10px] p-2 rounded shadow-xl whitespace-nowrap pointer-events-none z-20">
-                        <div class="font-bold">${item.category}</div>
-                        <div class="text-slate-400">${item.location} • <span class="text-emerald-400 font-semibold">${item.status}</span></div>
-                    </div>
-                `;
-                mapContainer.appendChild(pin);
-
-                // Lifecycle Feed Card
-                const card = document.createElement('div');
-                card.className = 'p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2';
-                card.innerHTML = `
-                    <div class="flex items-center justify-between">
-                        <span class="text-[10px] font-mono text-brand-400 font-bold">${item.id}</span>
-                        <span class="text-[9px] px-2 py-0.5 rounded-full font-semibold bg-slate-800 text-slate-300 border border-slate-700">${item.status}</span>
-                    </div>
-                    <div class="text-xs font-semibold text-slate-200">${item.category}</div>
-                    <div class="text-[11px] text-slate-400">${item.location}</div>
-                    <div class="flex items-center justify-between text-[10px] text-slate-500 pt-1 border-t border-slate-900">
-                        <span>Priority: <span class="text-rose-400 font-medium">${item.priority}</span></span>
-                        <span class="text-brand-400 cursor-pointer hover:underline" onclick="switchTab('gis')">View on Map →</span>
-                    </div>
-                `;
-                feedContainer.appendChild(card);
-            });
-        }
-
-        function filterMapPins(cat) {
-            renderGISMap(cat);
-        }
-
-        // THEME TOGGLE
-        function toggleTheme() {
-            const root = document.getElementById('body-root');
-            const icon = document.getElementById('theme-icon');
-            if(root.classList.contains('bg-slate-950')) {
-                root.classList.remove('bg-slate-950', 'text-slate-100');
-                root.classList.add('bg-slate-50', 'text-slate-900', 'light');
-                icon.className = "fa-solid fa-sun";
-            } else {
-                root.classList.remove('bg-slate-50', 'text-slate-900', 'light');
-                root.classList.add('bg-slate-950', 'text-slate-100');
-                icon.className = "fa-solid fa-moon";
-            }
-        }
-
-        window.onload = function() {
-            renderGISMap('ALL');
-            updateTourHighlight(1);
-        };
-
-
-
-        async function sub() {
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>AISVIP – Borno State Smart City Intelligence Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#060d18;--pn:#0b1626;--p2:#101e33;--bd:#1b2d47;--tx:#e8eef6;--mu:#8397b0;--ac:#2dd4bf;--cr:#ef4444;--hi:#f97316;--wa:#f5b301;--lo:#7d8ea6;--ok:#34d399;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:light){:root:not([data-theme=dark]){--bg:#eef2f7;--pn:#fff;--p2:#f3f6fa;--bd:#d6deea;--tx:#112036;--mu:#5a6b82;--ac:#0d9488;--ok:#15803d}}
+:root[data-theme=light]{--bg:#eef2f7;--pn:#fff;--p2:#f3f6fa;--bd:#d6deea;--tx:#112036;--mu:#5a6b82;--ac:#0d9488;--ok:#15803d}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;background:var(--bg);color:var(--tx);font:13px/1.45 Inter,system-ui,sans-serif;min-height:100vh}
+button,select,input,textarea{font:inherit;color:inherit}
+@keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}@keyframes ring{from{transform:scale(1);opacity:.7}to{transform:scale(2.6);opacity:0}}@keyframes grow{from{width:0}}
+.fade{animation:up .28s ease both}
+.btn{background:var(--ac);color:#04121a;border:0;padding:7px 13px;border-radius:999px;cursor:pointer;font-weight:600;transition:transform .15s,opacity .15s}.btn:hover{transform:translateY(-1px)}.btn.g{background:transparent;color:var(--tx);border:1px solid var(--bd)}.btn.g:hover{border-color:var(--ac)}.btn.r{background:var(--cr);color:#fff}
+input,select,textarea{background:var(--p2);border:1px solid var(--bd);border-radius:8px;padding:8px 10px;width:100%;transition:border-color .15s}input:focus,select:focus,textarea:focus{outline:0;border-color:var(--ac)}
+label{display:block;font-size:10px;color:var(--mu);margin:12px 0 4px;text-transform:uppercase;letter-spacing:.12em}
+#login{min-height:100vh;display:grid;place-items:center;padding:16px;background:radial-gradient(ellipse at 30% 20%,#10294a,var(--bg) 60%)}
+.lb{background:var(--pn);border:1px solid var(--bd);width:min(430px,100%);padding:30px;border-radius:14px;animation:up .5s both}.lb h1{font-size:20px;margin:6px 0 2px}.eb{font-size:10px;letter-spacing:.25em;color:var(--mu)}.tag{color:var(--ac);margin-bottom:16px}
+.nt{background:var(--p2);border:1px solid var(--bd);border-left:3px solid var(--wa);padding:9px 12px;border-radius:8px;font-size:12px;color:var(--mu);margin-bottom:12px}
+#app{display:none;height:100vh;flex-direction:column}#app.on{display:flex}
+.hd{display:flex;align-items:center;gap:14px;padding:10px 18px;background:var(--pn);border-bottom:1px solid var(--bd);flex-wrap:wrap}
+.hd h1{font-size:17px;margin:0;line-height:1.1}.hd .eb{display:block}
+.tabs{display:flex;gap:2px;background:var(--p2);border:1px solid var(--bd);padding:3px;border-radius:999px}.tabs a{padding:5px 13px;border-radius:999px;cursor:pointer;color:var(--mu);transition:all .2s;white-space:nowrap}.tabs a.on{background:var(--ac);color:#04121a;font-weight:600}.tabs a:hover:not(.on){color:var(--tx)}
+.kp{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}.kc{background:var(--p2);border:1px solid var(--bd);border-radius:10px;padding:5px 14px;text-align:center;cursor:pointer;transition:border-color .2s,transform .2s;min-width:84px}.kc:hover{border-color:var(--ac);transform:translateY(-1px)}.kc b{font-size:19px;display:block;line-height:1.2}.kc span{font-size:9px;letter-spacing:.1em;color:var(--mu);text-transform:uppercase}
+.pill{font-size:10px;padding:3px 8px;border-radius:999px;background:var(--wa);color:#000;font-weight:700;letter-spacing:.05em}
+#pg{flex:1;min-height:0;overflow:auto}
+.cc{display:grid;grid-template-columns:340px 1fr 380px;height:100%}
+.col{background:var(--pn);overflow-y:auto;min-height:0}.col.l{border-right:1px solid var(--bd)}.col.rr{border-left:1px solid var(--bd);padding:16px}
+.ph{padding:14px 16px;border-bottom:1px solid var(--bd);position:sticky;top:0;background:var(--pn);z-index:2}.ph h3,.sl{font-size:10px;letter-spacing:.2em;color:var(--mu);text-transform:uppercase;margin:0 0 8px;font-weight:600}.ph .fl{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.card{margin:10px 12px;padding:12px;background:var(--p2);border:1px solid var(--bd);border-radius:10px;cursor:pointer;transition:transform .18s,border-color .18s;animation:up .3s both}.card:hover{transform:translateX(3px);border-color:var(--ac)}.card.on{border-color:var(--ac);box-shadow:0 0 0 1px var(--ac)}.card.crit{border-color:var(--cr)}
+.card .id{font:11px ui-monospace,monospace;color:var(--mu)}.card b{display:block;margin:4px 0 2px;font-size:14px}.card small{color:var(--mu)}
+.bd{display:inline-block;padding:2px 9px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;border:1px solid}
+.P-Critical{color:var(--cr);border-color:var(--cr)}.P-High{color:var(--hi);border-color:var(--hi)}.P-Medium{color:var(--wa);border-color:var(--wa)}.P-Low{color:var(--lo);border-color:var(--lo)}.st{color:var(--ac);border-color:var(--ac)}
+.mp{position:relative;background:var(--bg);min-height:360px;overflow:hidden}.mp svg{width:100%;height:100%;display:block;position:absolute;inset:0}
+svg text{fill:var(--mu);font-size:9px;pointer-events:none}.mk{cursor:pointer;transition:opacity .25s}.mk:hover{opacity:.8}.rg{animation:ring 1.8s ease-out infinite;transform-box:fill-box;transform-origin:center}
+.ly{position:absolute;right:12px;top:12px;width:210px;background:var(--pn);border:1px solid var(--bd);border-radius:12px;padding:12px;z-index:3;animation:up .4s both;max-height:calc(100% - 24px);overflow:auto}
+.tg{display:flex;justify-content:space-between;align-items:center;background:var(--p2);border:1px solid var(--bd);border-radius:8px;padding:7px 10px;margin-bottom:5px;cursor:pointer;font-size:12px;transition:border-color .2s}.tg:hover{border-color:var(--ac)}.tg i{font-style:normal;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--ok);color:#04121a;transition:all .2s}.tg.off i{background:var(--bd);color:var(--mu)}.tg.dis{opacity:.5;cursor:default}
+.mb{position:absolute;left:12px;bottom:12px;display:flex;gap:6px;align-items:center;z-index:3;font-size:11px;color:var(--mu);background:var(--pn);border:1px solid var(--bd);padding:6px 10px;border-radius:999px}.mb i{display:inline-block;width:8px;height:8px;border-radius:50%;margin:0 3px 0 6px}
+.tbs{display:flex;gap:4px;margin:12px 0}.tbs a{padding:6px 12px;border-radius:8px;cursor:pointer;color:var(--mu);font-weight:600;font-size:11px;letter-spacing:.08em;text-transform:uppercase;transition:all .2s}.tbs a.on{background:var(--p2);color:var(--ac)}
+.rec{background:var(--p2);border:1px solid var(--ac);border-radius:10px;padding:12px;margin-bottom:12px;color:var(--tx)}
+.ai{border:1px dashed var(--wa);border-radius:10px;padding:10px;font-size:12px;color:var(--mu);margin-bottom:12px}
+.tl{border-left:2px solid var(--bd);margin:6px 0 0 5px;padding-left:12px}.tl div{margin:8px 0;position:relative;animation:up .3s both}.tl div:before{content:"";position:absolute;left:-18px;top:5px;width:8px;height:8px;border-radius:50%;background:var(--ac)}.tl small{color:var(--mu)}
+.em{display:grid;place-items:center;height:60%;text-align:center;color:var(--mu);padding:20px}
+.dp{padding:20px;max-width:1200px;margin:0 auto}h2{font-size:18px;margin:0 0 14px}
+.gr{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:12px}.cd{background:var(--pn);border:1px solid var(--bd);border-radius:12px;padding:16px}
+.bar{display:flex;align-items:center;gap:8px;margin:6px 0;cursor:pointer}.bar em{width:120px;font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px}.bar div{height:8px;background:linear-gradient(90deg,var(--ac),#3b82f6);border-radius:4px;animation:grow .7s ease both}.bar s{text-decoration:none;color:var(--mu);font-size:12px}
+.ok{border-left:3px solid var(--ok);margin-top:14px}
+#toast{position:fixed;bottom:18px;left:50%;transform:translate(-50%,20px);background:var(--p2);border:1px solid var(--ac);padding:9px 16px;border-radius:999px;opacity:0;transition:all .25s;z-index:30;pointer-events:none}#toast.on{opacity:1;transform:translate(-50%,0)}
+@media(max-width:1100px){.cc{grid-template-columns:300px 1fr}.col.rr{grid-column:1/3;border-left:0;border-top:1px solid var(--bd)}}
+@media(max-width:760px){#app{height:auto;min-height:100vh}.cc{display:block}.col{max-height:420px}.mp{height:380px}.kp{margin-left:0}.ly{width:170px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></head><body>
+<div id="login"><div class="lb"><div class="eb">AISVIP · BORNO STATE</div><h1>Smart City Intelligence Platform</h1><div class="tag">Serving Humanity with Humility.</div>
+<div class="nt">Front-end foundation. This sign-in is a <b>demo role switcher</b>, not real authentication[cite: 2].</div>
+<label>Demo role</label><select id="rl"></select><button class="btn" style="width:100%;margin-top:18px" onclick="enter()">Enter platform</button></div></div>
+<div id="app"><div class="hd"><div><span class="eb">AISVIP · BORNO STATE</span><h1>Smart City Intelligence</h1></div><div class="tabs" id="tb"></div><div class="kp" id="kp"></div><span class="pill">DEMO DATA</span><span id="who" style="color:var(--mu)"></span><button class="btn g" onclick="location.reload()">Sign out</button></div><div id="pg"></div></div><div id="toast"></div>
+<script>
+const ROLES={super:["Super Administrator","*"],state:["State Administrator","*"],lga:["LGA Administrator (Jere)","*",{lga:"Jere"}],rev:["Incident Reviewer","*"],off:["Department Officer (Drainage & Flood)","cmd,dash",{dept:"Drainage & Flood"}],gis:["GIS / Data Analyst","cmd,dash"],field:["Field Officer (Drainage & Flood)","cmd",{dept:"Drainage & Flood"}],pub:["Public User / Resident","rep,track"]};
+const TABS=[["cmd","Command Center"],["dash","Dashboard"],["rep","Submit Report"],["track","Track"],["plan","Administration"]];
+const LGA={"Maiduguri Metropolitan Council":[11.83,13.15],Jere:[11.88,13.2],Konduga:[11.65,13.42],Bama:[11.52,13.69],Gwoza:[11.08,13.69],Dikwa:[12.04,13.92],Monguno:[12.67,13.61],Damboa:[11.16,12.76],Biu:[10.61,12.19],Ngala:[12.35,14.18],Kukawa:[12.92,13.57]};
+const ALLLGA="Maiduguri Metropolitan Council,Jere,Bama,Konduga,Mafa,Dikwa,Ngala,Monguno,Gwoza,Biu,Damboa,Bayo,Hawul,Kwaya Kusar,Shani,Bursari,Gubio,Guzamala,Kukawa,Marte,Mobbar,Abadam,Askira/Uba,Chibok,Kaga,Kala/Balge,Magumeri".split(",");
+const CAT={Drainage:"Drainage & Flood",Roads:"Roads & Transport",Waste:"Environment & Waste",Water:"Water Resources",Lighting:"Electricity & Lighting",Flooding:"Drainage & Flood","Public facilities":"Public Works"};
+const ST=["Submitted","Awaiting Review","Under Verification","Clarification Required","Verified","Rejected","Pending Assignment","Assigned","In Progress","Resolved","Closed","Reopened"];
+const NOW=Date.now(),DAY=864e5;
+const SEED=[["Blocked drainage beside primary school","Drainage","Jere","Medium","Verified",5],["Deep pothole on main access road","Roads","Maiduguri Metropolitan Council","High","In Progress",9],["Uncollected refuse at market edge","Waste","Maiduguri Metropolitan Council","Medium","Assigned",4],["Streetlights out on junction","Lighting","Maiduguri Metropolitan Council","Low","Pending Assignment",3],["Broken water standpipe","Water","Konduga","High","Assigned",12],["Flooding after rainfall at settlement","Flooding","Jere","Critical","In Progress",6],["Cracked public clinic wall","Public facilities","Bama","Medium","Awaiting Review",2],["Overflowing drain near road","Drainage","Maiduguri Metropolitan Council","High","Resolved",20],["Road erosion at culvert","Roads","Biu","High","Verified",8],["Illegal dump site growing","Waste","Jere","Medium","Resolved",25],["Water pipe leakage","Water","Gwoza","Low","Submitted",1],["Streetlight pole leaning","Lighting","Dikwa","Medium","Closed",30],["Blocked drainage at roadside","Drainage","Jere","Medium","Assigned",7],["Damaged public toilet block","Public facilities","Monguno","Low","Under Verification",2]].map((r,i)=>({id:"AISVIP-BOR-2026-"+String(i+1).padStart(6,"0"),t:r[0],c:r[1],l:r[2],p:r[3],s:r[4],d:CAT[r[1]],ts:NOW-r[5]*DAY,due:NOW-r[5]*DAY+7*DAY,demo:1,lat:LGA[r[2]][0]+((i*37%11)-5)*.012,lon:LGA[r[2]][1]+((i*53%11)-5)*.012,desc:"Demonstration record. Not a genuine citizen submission.",h:[[NOW-r[5]*DAY,"Submitted (demo seed)","System"]]}));
+let U=null,V="cmd",INC=SEED.slice(),S={sel:null,tab:"Triage",f:{},ly:{hot:1,act:1,res:1,ref:1,grid:1}},PV={};
+try{INC=INC.concat(JSON.parse(localStorage.getItem("aisvip_rep")||"[]"))}catch(e){}
+const $=id=>document.getElementById(id),W=760,H=440;
+$("rl").innerHTML=Object.entries(ROLES).map(([k,v])=>`<option value="${k}">${v[0]}</option>`).join("");
+const can=p=>U.ok=="*"||U.ok.split(",").includes(p)||(p=="plan"&&U.k!="pub"&&U.ok=="*");
+function enter(){const k=$("rl").value;U={k,n:ROLES[k][0],ok:ROLES[k][1],sc:ROLES[k][2]||{}};$("login").style.display="none";$("app").classList.add("on");$("who").textContent=U.n;go(U.k=="pub"?"rep":"cmd")}
+const vis=()=>INC.filter(i=>(!U.sc.lga||i.l==U.sc.lga)&&(!U.sc.dept||i.d==U.sc.dept));
+const done=i=>["Resolved","Closed","Rejected"].includes(i.s),od=i=>i.due<NOW&&!done(i);
+const ago=t=>{const d=Math.round((NOW-t)/DAY);return d>0?d+"d ago":"today"};
+const fmt=t=>new Date(t).toLocaleString("en-NG",{timeZone:"Africa/Lagos",dateStyle:"medium",timeStyle:"short"});
+function toast(m){const t=$("toast");t.textContent=m;t.classList.add("on");clearTimeout(t.h);t.h=setTimeout(()=>t.classList.remove("on"),2400)}
+function cnt(el,to){const from=PV[el.id]||0;PV[el.id]=to;if(isNaN(to)||matchMedia("(prefers-reduced-motion:reduce)").matches){el.textContent=to;return}const t0=performance.now();(function f(t){const p=Math.min(1,(t-t0)/600);el.textContent=Math.round(from+(to-from)*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(f)})(t0)}
+function kpis(){const a=vis(),r=a.filter(i=>["Resolved","Closed"].includes(i.s)).length,K=[["k1","Active",a.filter(i=>!done(i)&&!["Resolved","Closed"].includes(i.s)).length,{act:1}],["k2","Critical",a.filter(i=>i.p=="Critical"&&!done(i)).length,{pr:"Critical"}],["k3","Awaiting review",a.filter(i=>["Submitted","Awaiting Review","Under Verification"].includes(i.s)).length,{st:"review"}],["k4","Overdue",a.filter(od).length,{od:1}],["k5","Resolved %",a.length?Math.round(r/a.length*100):0,{}]];
+if(!$("k1"))$("kp").innerHTML=K.map(k=>`<div class="kc" onclick='S.f=${JSON.stringify(k[3])};go("cmd")'><b id="${k[0]}">0</b><span>${k[1]}</span></div>`).join("");K.forEach(k=>cnt($(k[0]),k[2]))}
+function go(p){V=p;$("tb").innerHTML=TABS.filter(t=>can(t[0])).map(t=>`<a class="${t[0]==p?"on":""}" onclick="go('${t[0]}')">${t[1]}</a>`).join("");kpis();const m={cmd,dash,rep,track,plan}[p];m();const c=$("pg").firstElementChild;c&&c.classList.add("fade")}
+function pass(i){const f=S.f,q=(f.q||"").toLowerCase();return(!f.pr||i.p==f.pr)&&(!f.cat||i.c==f.cat)&&(!f.s||i.s==f.s)&&(!f.st||(f.st=="review"?["Submitted","Awaiting Review","Under Verification"].includes(i.s):[f.st].includes(i.s)))&&(!f.act||(!done(i)&&!["Resolved","Closed"].includes(i.s)))&&(!f.od||od(i))&&(!f.l||i.l==f.l)&&(!q||(i.id+i.t+i.l).toLowerCase().includes(q))}
+function cmd(){const o=(n,a)=>`<select onchange="S.f.${n}=this.value;queue();map()"><option value="">${a[0]}</option>${a[1].map(x=>`<option ${S.f[n]==x?"selected":""}>${x}</option>`).join("")}</select>`;
+$("pg").innerHTML=`<div class="cc"><div class="col l"><div class="ph"><h3>Incident queue</h3><div style="font-size:22px;font-weight:700;margin-bottom:10px"><span id="qn">0</span> shown</div><input placeholder="Search reference, title, LGA…" value="${S.f.q||""}" oninput="S.f.q=this.value;queue();map()" style="margin-bottom:6px"><div class="fl">${o("s",["All statuses",ST])}${o("pr",["All priorities",["Critical","High","Medium","Low"]])}</div><div style="margin-top:6px">${o("cat",["All categories",Object.keys(CAT)])}</div></div><div id="q"></div></div><div class="mp" id="mp"></div><div class="col rr" id="dt"></div></div>`;queue();map(1);det()}
+function queue(){const a=vis().filter(pass).sort((x,y)=>({Critical:0,High:1,Medium:2,Low:3}[x.p]-{Critical:0,High:1,Medium:2,Low:3}[y.p])||y.ts-x.ts);cnt($("qn"),a.length);$("q").innerHTML=a.map((i,n)=>`<div class="card ${i.p=="Critical"?"crit":""} ${S.sel==i.id?"on":""}" style="animation-delay:${Math.min(n,12)*25}ms" onclick="pick('${i.id}')"><div style="display:flex;justify-content:space-between;gap:6px"><span class="id">${i.id.slice(-10)}${i.demo?" · demo":""}</span><span class="bd P-${i.p}">${i.p}</span></div><b>${i.t}</b><small>${i.c} · ${i.l}</small><div style="margin:8px 0 2px;display:flex;justify-content:space-between;align-items:center"><span class="bd st">${i.s}</span><small>${od(i)?'<span style="color:var(--cr)">Overdue · </span>':""}${ago(i.ts)}</small></div></div>`).join("")||'<div class="em">No incidents match these filters.</div>'}
+function pick(id){S.sel=id;S.tab="Triage";queue();det();const i=INC.find(x=>x.id==id);zoom(i)}
+let VB={x:0,y:0,w:W,h:H};const px=o=>40+(o-12)/2.4*(W-80),py=a=>H-30-(a-10.4)/2.8*(H-60);
+const col=i=>["Resolved","Closed"].includes(i.s)?"var(--ok)":{Critical:"var(--cr)",High:"var(--hi)",Medium:"var(--wa)",Low:"var(--lo)"}[i.p];
+function map(init){const a=vis().filter(pass),L=S.ly;if(init){VB={x:0,y:0,w:W,h:H}}let g="";if(L.grid){for(let o=12;o<=14.4;o+=.4)g+=`<line x1="${px(o)}" x2="${px(o)}" y1="0" y2="${H}" stroke="var(--bd)" stroke-width=".5"/>`;for(let t=10.4;t<=13.2;t+=.4)g+=`<line y1="${py(t)}" y2="${py(t)}" x1="0" x2="${W}" stroke="var(--bd)" stroke-width=".5"/>`}
+const hot=L.hot?a.map(i=>`<circle cx="${px(i.lon)}" cy="${py(i.lat)}" r="26" fill="url(#hg)"/>`).join(""):"",ref=L.ref?Object.entries(LGA).map(([n,c])=>`<circle cx="${px(c[1])}" cy="${py(c[0])}" r="2" fill="var(--mu)"/><text x="${px(c[1])+5}" y="${py(c[0])-4}">${n.replace(" Metropolitan Council"," MMC")}</text>`).join(""):"";
+const mk=a.filter(i=>done(i)||["Resolved","Closed"].includes(i.s)?L.res:L.act).map(i=>{const c=col(i),x=px(i.lon),y=py(i.lat),on=S.sel==i.id;return`<g class="mk" onclick="pick('${i.id}')">${i.p=="Critical"&&!["Resolved","Closed"].includes(i.s)?`<circle class="rg" cx="${x}" cy="${y}" r="7" fill="none" stroke="${c}" stroke-width="1.5"/>`:""}<circle data-r="${on?9:6}" cx="${x}" cy="${y}" r="${on?9:6}" fill="${c}" stroke="${on?"var(--tx)":"var(--bg)"}" stroke-width="${on?2:1.5}"><title>${i.id}: ${i.t}</title></circle></g>`}).join("");
+const tg=(k,n)=>`<div class="tg ${L[k]?"":"off"}" onclick="S.ly.${k}=${L[k]?0:1};map()">${n}<i>${L[k]?"ON":"OFF"}</i></div>`;
+$("mp").innerHTML=`<svg id="sv" viewBox="${VB.x} ${VB.y} ${VB.w} ${VB.h}" preserveAspectRatio="xMidYMid slice"><defs><radialGradient id="hg"><stop offset="0" stop-color="#f97316" stop-opacity=".45"/><stop offset="1" stop-color="#f97316" stop-opacity="0"/></radialGradient></defs>${g}${hot}${ref}${mk}</svg><div class="ly"><h3 class="sl">Layers</h3>${tg("act","Active incidents")}${tg("res","Resolved")}${tg("hot","Heatmap")}${tg("ref","LGA reference points")}${tg("grid","Lat/lon grid")}<div class="tg dis">LGA &amp; ward boundaries<i style="background:var(--bd);color:var(--mu)">LATER</i></div></div><div class="mb"><button class="btn g" style="padding:3px 10px" onclick="S.sel=null;queue();det();zoom(null)">Reset view</button><i style="background:var(--cr)"></i>Critical<i style="background:var(--hi)"></i>High<i style="background:var(--wa)"></i>Medium<i style="background:var(--lo)"></i>Low<i style="background:var(--ok)"></i>Resolved</div><div class="mb" style="left:auto;right:12px;bottom:12px;max-width:340px;border-radius:10px;font-size:10px">Boundaries and basemap unavailable in this preview. Dots are approximate LGA points; incident positions are illustrative.</div>`}
+function zoom(i){const sv=$("sv");if(!sv)return;const T=i?{w:200,h:118,x:px(i.lon)-100,y:py(i.lat)-59}:{x:0,y:0,w:W,h:H},F={...VB},t0=performance.now();(function f(t){const p=Math.min(1,(t-t0)/650),e=1-Math.pow(1-p,3);VB={x:F.x+(T.x-F.x)*e,y:F.y+(T.y-F.y)*e,w:F.w+(T.w-F.w)*e,h:F.h+(T.h-F.h)*e};sv.setAttribute("viewBox",`${VB.x} ${VB.y} ${VB.w} ${VB.h}`);const s=VB.w/W;sv.querySelectorAll("circle[data-r]").forEach(c=>c.setAttribute("r",c.dataset.r*Math.max(s,.45)));if(p<1)requestAnimationFrame(f)})(t0)}
+const FLOW={Submitted:["Awaiting Review"],"Awaiting Review":["Under Verification","Rejected"],"Under Verification":["Verified","Rejected","Clarification Required"],Verified:["Pending Assignment"],"Pending Assignment":["Assigned"],Assigned:["In Progress"],"In Progress":["Resolved"],Resolved:["Closed","Reopened"],Closed:["Reopened"],Reopened:["Assigned"],Rejected:[],"Clarification Required":["Under Verification"]};
+const WHO={"Awaiting Review":"rev","Under Verification":"rev",Rejected:"rev","Clarification Required":"rev",Verified:"rev","Pending Assignment":"rev",Assigned:"adm","In Progress":"off",Resolved:"off",Closed:"rev",Reopened:"rev"};
+const NEXT={Submitted:"Queue for reviewer attention.","Awaiting Review":"Reviewer to open the report, check evidence and confirm location.","Under Verification":"Confirm details, then verify, reject or request clarification.","Clarification Required":"Await reporter response, then resume verification.",Verified:"Mark pending assignment, then assign to the responsible department.","Pending Assignment":"Assign to a department and set a deadline.",Assigned:"Department officer to accept and start work.","In Progress":"Record inspection and evidence, then submit resolution.",Resolved:"Reviewer or supervisor validates and closes, or reopens.",Closed:"No action required.",Rejected:"No action required.",Reopened:"Reassign for further work."};
+const allowed=s=>{const g=WHO[s],k=U.k;if(["super","state"].includes(k))return 1;if(g=="rev")return["rev","lga"].includes(k);if(g=="adm")return k=="lga";return["off","field"].includes(k)};
+function det(){const i=INC.find(x=>x.id==S.sel),el=$("dt");if(!el)return;if(!i){el.innerHTML='<div class="em"><div><div style="font-size:30px">◎</div>Select an incident from the queue or map to see triage, details and history.</div></div>';return}
+const T=S.tab,tabs=["Triage","Details","Timeline"].map(t=>`<a class="${t==T?"on":""}" onclick="S.tab='${t}';det()">${t}</a>`).join("");
+const body=T=="Triage"?`<div class="sl">Recommended next step</div><div class="rec">${NEXT[i.s]}<br><small style="color:var(--mu)">Rule-based guidance.</small></div><div class="ai"><b style="color:var(--wa)">AI analysis: connected via backend.</b><br>Priority: ${i.p}.</div><div class="sl">Actions</div><div style="display:flex;gap:6px;flex-wrap:wrap">${FLOW[i.s].filter(allowed).map(s=>`<button class="btn ${s=="Rejected"?"r":""}" onclick="mv('${i.id}','${s}')">${s}</button>`).join("")||'<small style="color:var(--mu)">No actions available to your role at this status.</small>'}</div>`:T=="Details"?`<p>${i.desc}</p>${[["Category",i.c],["LGA",i.l],["Department",i.d||"Unassigned"],["Coordinates",i.lat.toFixed(3)+", "+i.lon.toFixed(3)],["Submitted",fmt(i.ts)],["Due",fmt(i.due)]].map(r=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--bd)"><span style="color:var(--mu)">${r[0]}</span><span style="text-align:right">${r[1]}</span></div>`).join("")}`:`<div class="tl">${i.h.slice().reverse().map(h=>`<div><b>${h[1]}</b><br><small>${fmt(h[0])} · ${h[2]}</small></div>`).join("")}</div>`;
+el.innerHTML=`<div class="fade"><div style="display:flex;justify-content:space-between"><span class="card id" style="all:unset;font:11px ui-monospace,monospace;color:var(--mu)">${i.id}</span><span class="bd P-${i.p}">${i.p}</span></div><h2 style="margin:10px 0 4px;font-size:21px">${i.t}</h2><span class="bd st">${i.s}</span>${od(i)?' <span class="bd P-Critical">Overdue</span>':""}<div class="tbs">${tabs}</div>${body}</div>`}
+function mv(id,s){const i=INC.find(x=>x.id==id);i.s=s;i.h.push([Date.now(),s,U.n]);try{localStorage.setItem("aisvip_rep",JSON.stringify(INC.filter(x=>!x.demo)))}catch(e){}kpis();queue();map();det();toast("Status updated and logged")}
+function bars(t,keys,fn,f){const r=keys.map(k=>[k,fn(k)]).filter(x=>x[1]),m=Math.max(1,...r.map(x=>x[1]));return`<div class="cd"><h3 class="sl">${t}</h3>${r.map(([k,v])=>`<div class="bar" onclick='S.f={${f}:${JSON.stringify(k)}};S.sel=null;go("cmd")'><em>${k}</em><div style="width:${v/m*120}px"></div><s>${v}</s></div>`).join("")||"<small>No records</small>"}</div>`}
+function dash(){const a=vis();$("pg").innerHTML=`<div class="dp"><h2>Executive dashboard</h2><div class="nt">Figures reflect real records and visible entries. Click any bar to open it in the Command Center.</div><div class="gr">${bars("By status",ST,s=>a.filter(i=>i.s==s).length,"s")}${bars("By category",Object.keys(CAT),c=>a.filter(i=>i.c==c).length,"cat")}${bars("By LGA",[...new Set(a.map(i=>i.l))],l=>a.filter(i=>i.l==l).length,"l")}${bars("By priority",["Critical","High","Medium","Low"],p=>a.filter(i=>i.p==p).length,"pr")}</div></div>`}
+function rep(){$("pg").innerHTML=`<div class="dp" style="max-width:600px"><h2>Submit a report</h2><div class="nt">No account needed. Reports save directly to your Render PostgreSQL database.</div><label>Category</label><select id="rc">${Object.keys(CAT).map(c=>`<option>${c}</option>`).join("")}</select><label>Title</label><input id="rt"><label>Description</label><textarea id="rd" rows="4"></textarea><label>LGA</label><select id="rl2">${ALLLGA.map(l=>`<option>${l}</option>`).join("")}</select><label>Community / street / landmark</label><input id="rs"><label>GPS (optional)</label><div style="display:flex;gap:6px"><input id="la" placeholder="Latitude"><input id="lo" placeholder="Longitude"><button class="btn g" style="white-space:nowrap" onclick="gps()">Use location</button></div><label>Optional phone (Nigerian)</label><input id="rp" placeholder="0803… or +234803…"><div style="margin-top:16px"><button class="btn" onclick="sub()">Submit report</button></div><div id="rr"></div></div>`}
+function gps(){navigator.geolocation?navigator.geolocation.getCurrentPosition(p=>{la.value=p.coords.latitude.toFixed(5);lo.value=p.coords.longitude.toFixed(5)},()=>toast("Location unavailable")):toast("Not supported")}
+
+async function sub() {
   const ph = rp.value.replace(/\s/g, "");
   if (!rt.value.trim() || rd.value.trim().length < 10) return toast("Add a title and a longer description");
   if (ph && !/^(\+234|0)[789][01]\d{8}$/.test(ph)) return toast("Invalid Nigerian phone number");
 
+  const l = rl2.value;
+  const b = LGA[l] || [11.83, 13.15];
+
   const payload = {
     title: rt.value,
     category: rc.value,
-    lga: rl2.value,
-    community: rs.value,
+    lga: l,
+    community: rs.value || l,
     description: rd.value,
-    latitude: parseFloat(la.value) || (LGA[rl2.value] ? LGA[rl2.value][0] : 11.83),
-    longitude: parseFloat(lo.value) || (LGA[rl2.value] ? LGA[rl2.value][1] : 13.15),
+    latitude: parseFloat(la.value) || b[0],
+    longitude: parseFloat(lo.value) || b[1],
     phone: ph
   };
 
   try {
-  const res = await fetch('https://aisvip-v1.onrender.com/api/v1/incidents', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  const data = await res.json();
+    const res = await fetch('https://aisvip-v1.onrender.com/api/v1/incidents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
 
-  if (data.success) {
-    rr.innerHTML = `<div class="cd ok fade"><b>Report received</b><br>Reference: <b style="color:var(--ac)">${data.data.id}</b><br>Category: ${data.data.category} · Priority: ${data.data.priority} · Status: Submitted<br>Keep this reference number to track progress.</div>`;
-    toast("Report saved to PostgreSQL database!");
-  } else {
-    toast("Submission failed: " + data.error);
+    if (data.success) {
+      const serverReport = data.data;
+
+      INC.push({
+        id: serverReport.id,
+        t: serverReport.title,
+        c: serverReport.category,
+        l: serverReport.lga,
+        p: serverReport.priority || "Medium",
+        s: serverReport.status || "Submitted",
+        d: CAT[serverReport.category] || "Public Works",
+        ts: Date.now(),
+        due: Date.now() + 7 * DAY,
+        desc: serverReport.description,
+        lat: parseFloat(serverReport.latitude) || b[0],
+        lon: parseFloat(serverReport.longitude) || b[1],
+        h: [[Date.now(), "Submitted", "Resident"]]
+      });
+
+      try {
+        localStorage.setItem("aisvip_rep", JSON.stringify(INC.filter(x => !x.demo)));
+      } catch (e) {}
+
+      rr.innerHTML = `<div class="cd ok fade"><b>Report received</b><br>Reference: <b style="color:var(--ac)">${serverReport.id}</b><br>Category: ${serverReport.category} · Priority: ${serverReport.priority} · Status: ${serverReport.status}<br>Keep this reference number to track progress.</div>`;
+      kpis();
+      toast("Saved to PostgreSQL database!");
+    } else {
+      toast("Submission failed: " + data.error);
+    }
+  } catch (err) {
+    console.error("API error:", err);
+    toast("Backend connection error");
   }
-} catch (err) {
-  toast("Backend connection error");
 }
-}
-    </script>
-</body>
-</html>
+
+function track(){$("pg").innerHTML=`<div class="dp" style="max-width:480px"><h2>Track a report</h2><input id="tq" placeholder="AISVIP-BOR-2026-000001"><div style="margin:12px 0"><button class="btn" onclick="tr()">Check status</button></div><div id="tr"></div></div>`}
+function tr(){const i=INC.find(x=>x.id==tq.value.trim().toUpperCase());$("tr").innerHTML=i?`<div class="cd fade"><b>${i.id}</b><br>${i.c} · ${i.l}<br>Status: <span class="bd st">${i.s}</span><div class="tl">${i.h.map(h=>`<div>${h[1]}<br><small>${fmt(h[0])}</small></div>`).join("")}</div></div>`:"<small>No report found with that reference.</small>"}
+function plan(){const P=["Statewide intelligence","Verification queue","Assignments","Field operations","Department response","AI Intelligence Centre","Geographic analysis","Incident trends","Analytics and exports","Users and roles","Organisations and departments","LGAs and wards","Incident categories","Notifications (SMS, email, WhatsApp)","AI configuration","System settings","Audit logs"];$("pg").innerHTML=`<div class="dp"><h2>Administration and planned modules</h2><div class="nt">Designed modules needing backend integration.</div><div class="gr">${P.map(p=>`<div class="cd" style="display:flex;justify-content:space-between">${p}<span class="bd P-Medium">Planned</span></div>`).join("")}</div></div>`}
+</script></body></html>
