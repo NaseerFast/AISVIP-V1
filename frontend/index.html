@@ -784,22 +784,22 @@
   };
 
   try {
-    const res = await fetch('http://127.0.0.1:5001/api/v1/incidents', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
+  const res = await fetch('https://aisvip-v1.onrender.com/api/v1/incidents', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
 
-    if (data.success) {
-      rr.innerHTML = `<div class="cd ok fade"><b>Report received</b><br>Reference: <b style="color:var(--ac)">${data.data.id}</b><br>Category: ${data.data.category} · Priority: ${data.data.priority} · Status: Submitted<br>Keep this reference number to track progress.</div>`;
-      toast("Report saved to PostgreSQL database!");
-    } else {
-      toast("Submission failed: " + data.error);
-    }
-  } catch (err) {
-    toast("Backend connection error");
+  if (data.success) {
+    rr.innerHTML = `<div class="cd ok fade"><b>Report received</b><br>Reference: <b style="color:var(--ac)">${data.data.id}</b><br>Category: ${data.data.category} · Priority: ${data.data.priority} · Status: Submitted<br>Keep this reference number to track progress.</div>`;
+    toast("Report saved to PostgreSQL database!");
+  } else {
+    toast("Submission failed: " + data.error);
   }
+} catch (err) {
+  toast("Backend connection error");
+}
 }
     </script>
 </body>
